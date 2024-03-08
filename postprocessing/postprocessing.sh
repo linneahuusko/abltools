@@ -7,6 +7,9 @@
 #SBATCH --mail-type=BEGIN,END,FAIL
 
 conda activate Nek5000-Python-env
-python scripts/time_average.py > time_average.log
 
-python plotting_diagnostics.py "n_32 TKE" neutral > plotting_diagnostics.log
+casename="n_32"
+N=32
+python scripts/time_average.py $casename $N > time_average.log
+
+python scripts/plot_diagnostics.py $casename "n32 TKE" "neutral" > plotting_diagnostics.log

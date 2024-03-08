@@ -1,15 +1,14 @@
-# %%
+"""
+Functions for plotting output from Nek5000 ABL simulations
+Linnea Huusko, 2024-03-08
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
-import h5py
-import pymech as pm
-from scipy import signal
-import matplotlib
 
 
-# %%
 def plot_spectrum_hdf5(
-    f: h5py._hl.files.File,
+    f,
     path: str,
     variable: str,
     dimension: str,
@@ -38,6 +37,9 @@ def plot_spectrum_hdf5(
         p ():
 
     """
+    from scipy import signal
+    import h5py
+
     locations = np.loadtxt(f"{path}/Point_locations.txt", delimiter=",", max_rows=1)
     shape = np.insert(locations, 0, len(f["t"][:])).astype(int).tolist()
 
@@ -144,6 +146,8 @@ def plot_spectrum_netcdf(
         p ():
 
     """
+    from scipy import signal
+
     delta = (ds[dimension][1] - ds[dimension][0]).values
 
     if dimension == "x":
@@ -213,22 +217,12 @@ def plot_vertical_profiles(
         fig:                    figure with all plots
     """
 
-    from Read_ref_data import read_variable_from_ref, read_BLH_from_ref
+    from abltools import read_variable_from_ref, read_BLH_from_ref
 
     if case == "stable" or case == "neutral":
         t_ref = 265
     elif case == "mixed" or "case" == "free_conv":
         t_ref = 300
-
-    if case == "mixed":
-        z_i_ref = 542.969
-
-    Z_i = f["y"].isel(y=(f["dtdy"][:]).argmax()).values
-
-    if normalize_BLH:
-        z_i = Z_i  # To use for plotting
-    else:
-        z_i = 1
 
     fig, [
         [ax_u, ax_uw, ax_vw],
@@ -240,7 +234,7 @@ def plot_vertical_profiles(
     y = f["y"][:]
 
     if normalize_BLH:
-        z_i = f["y"][np.argmax(f["dtdy"][5:120])]
+        z_i = f["y"].isel(y=(f["dtdy"][:]).argmax()).values
         print(f"{z_i = }")
         z_i_ref = read_BLH_from_ref(case)
     else:
@@ -412,7 +406,6 @@ def plot_diagnostics(path: str):
 
     """
     import pandas as pd
-    import matplotlib.pyplot as plt
 
     try:
         file = f"{path}/diagnostics.dat"
@@ -454,7 +447,6 @@ def plot_wmles_diagnostics(path: str):
         fig:            figure with the timeseries
     """
     import pandas as pd
-    import matplotlib.pyplot as plt
 
     file = f"{path}/wmles.dat"
     df = pd.read_csv(file, names=["time", "q", "L", "L_min", "L_max"]).dropna()
@@ -565,7 +557,7 @@ def plot_history_points(file: str, sharex=True, sharey="col"):
     return fig, his
 
 
-def add_vline(ax: matplotlib.axes.Axes, x: float, linestyle="dashed") -> None:
+def add_vline(ax, x: float, linestyle="dashed") -> None:
     """
     Add a thin, black vertical line to an axis
 
@@ -579,7 +571,7 @@ def add_vline(ax: matplotlib.axes.Axes, x: float, linestyle="dashed") -> None:
     ax.axvline(x, color="black", linewidth=0.5, linestyle=linestyle)
 
 
-def add_hline(ax: matplotlib.axes.Axes, y: float, linestyle="dashed") -> None:
+def add_hline(ax, y: float, linestyle="dashed") -> None:
     """
     Add a thin, black vertical line to an axis
 
