@@ -217,7 +217,7 @@ def plot_vertical_profiles(
         fig:                    figure with all plots
     """
 
-    from abltools import read_variable_from_ref, read_BLH_from_ref
+    from abltools import read_profile_from_ref, read_BLH_from_ref
 
     if case == "stable" or case == "neutral":
         t_ref = 265
@@ -243,22 +243,22 @@ def plot_vertical_profiles(
 
     # --- Reference --------------------------------------------------------------------
     if plot_ref:
-        u_ref, z_ref, _ = read_variable_from_ref("UXYM", case)
+        u_ref, z_ref, _ = read_profile_from_ref("UXYM", case)
         ax_u.plot(u_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        v_ref, z_ref, _ = read_variable_from_ref("VXYM", case)
+        v_ref, z_ref, _ = read_profile_from_ref("VXYM", case)
         ax_u.plot(v_ref, z_ref / z_i_ref, color="black", linestyle="dashed")
 
-        uu_ref, z_ref, _ = read_variable_from_ref("UPS", case)
+        uu_ref, z_ref, _ = read_profile_from_ref("UPS", case)
         ax_uu.plot(uu_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        vv_ref, z_ref, _ = read_variable_from_ref("VPS", case)
+        vv_ref, z_ref, _ = read_profile_from_ref("VPS", case)
         ax_vv.plot(vv_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        ww_ref, z_ref, _ = read_variable_from_ref("WPS", case)
+        ww_ref, z_ref, _ = read_profile_from_ref("WPS", case)
         ax_ww.plot(ww_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        uw_ref_res, z_ref, _ = read_variable_from_ref("UWLE", case)
+        uw_ref_res, z_ref, _ = read_profile_from_ref("UWLE", case)
         ax_uw.plot(
             uw_ref_res,
             z_ref / z_i_ref,
@@ -267,7 +267,7 @@ def plot_vertical_profiles(
             linestyle="dashed",
         )
 
-        uw_ref_sgs, z_ref, _ = read_variable_from_ref("UWSGS", case)
+        uw_ref_sgs, z_ref, _ = read_profile_from_ref("UWSGS", case)
         ax_uw.plot(
             uw_ref_sgs,
             z_ref / z_i_ref,
@@ -276,41 +276,41 @@ def plot_vertical_profiles(
             linestyle="dotted",
         )
 
-        uw_ref_tot, z_ref, _ = read_variable_from_ref("UWTOT", case)
+        uw_ref_tot, z_ref, _ = read_profile_from_ref("UWTOT", case)
         ax_uw.plot(uw_ref_tot, z_ref / z_i_ref, color="black", label="total")
 
-        vw_ref_res, z_ref, _ = read_variable_from_ref("VWLE", case)
+        vw_ref_res, z_ref, _ = read_profile_from_ref("VWLE", case)
         ax_vw.plot(
             vw_ref_res, z_ref / z_i_ref, color="black", label="ref", linestyle="dashed"
         )
-        vw_ref_sgs, z_ref, _ = read_variable_from_ref("VWSGS", case)
+        vw_ref_sgs, z_ref, _ = read_profile_from_ref("VWSGS", case)
         ax_vw.plot(
             vw_ref_sgs, z_ref / z_i_ref, color="black", label="ref", linestyle="dotted"
         )
 
-        vw_ref_tot, z_ref, _ = read_variable_from_ref("VWTOT", case)
+        vw_ref_tot, z_ref, _ = read_profile_from_ref("VWTOT", case)
         ax_vw.plot(vw_ref_tot, z_ref / z_i_ref, color="black", label="ref")
 
-        w_skew_ref, z_ref, _ = read_variable_from_ref("WSKEW", case)
+        w_skew_ref, z_ref, _ = read_profile_from_ref("WSKEW", case)
         ax_w_skew.plot(w_skew_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        T_ref, z_ref, label_ref = read_variable_from_ref("TXYM", case)
+        T_ref, z_ref, label_ref = read_profile_from_ref("TXYM", case)
         ax_T.plot(T_ref, z_ref / z_i_ref, color="black", label="ref")
 
-        Tv_ref_res, z_ref, _ = read_variable_from_ref("WTLE", case)
+        Tv_ref_res, z_ref, _ = read_profile_from_ref("WTLE", case)
         ax_Tv.plot(
             Tv_ref_res, z_ref / z_i_ref, color="black", label="ref", linestyle="dashed"
         )
 
-        Tv_ref_sgs, z_ref, _ = read_variable_from_ref("WTSGS", case)
+        Tv_ref_sgs, z_ref, _ = read_profile_from_ref("WTSGS", case)
         ax_Tv.plot(
             Tv_ref_sgs, z_ref / z_i_ref, color="black", label="ref", linestyle="dotted"
         )
 
-        Tv_ref_tot, z_ref, _ = read_variable_from_ref("WTTOT", case)
+        Tv_ref_tot, z_ref, _ = read_profile_from_ref("WTTOT", case)
         ax_Tv.plot(Tv_ref_tot, z_ref / z_i_ref, color="black", label="ref")
 
-        TT_ref, z_ref, _ = read_variable_from_ref("TPS", case)
+        TT_ref, z_ref, _ = read_profile_from_ref("TPS", case)
         ax_TT.plot(TT_ref, z_ref / z_i_ref, color="black", label="ref")
 
     # --- U and V ----------------------------------------------------------------------
@@ -364,7 +364,7 @@ def plot_vertical_profiles(
     ax_www.axvline(0, linewidth=0.5, color="black")
 
     # # --- T skew -----------------------------------------------------------------------
-    # T_skew_ref, z_ref, _ = read_variable_from_ref("TSKEW")
+    # T_skew_ref, z_ref, _ = read_profile_from_ref("TSKEW")
     # ax_T_skew.plot(T_skew_ref, z_ref/z_i_ref, color="black", label="ref")
     # ax_T_skew.plot(f["vvv"][:] / f["vv"][:]**(3/2), y/z_i)
     # ax_T_skew.set_xlabel("w skewness")

@@ -14,6 +14,12 @@ from .analysis_functions import (
     get_averages,
 )
 
+from .read_reference_data import (
+    read_profile_from_ref,
+    read_timeseries_from_ref,
+    read_BLH_from_ref,
+)
+
 __all__ = [
     "plot_diagnostics",
     "plot_wmles_diagnostics",
@@ -25,4 +31,7 @@ __all__ = [
     "read_variable_from_ref",
     "read_BLH_from_ref",
     "get_averages",
+    "read_profile_from_ref",
+    "read_timeseries_from_ref",
+    "read_BLH_from_ref",
 ]
