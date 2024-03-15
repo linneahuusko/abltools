@@ -3,6 +3,8 @@ from .plotting_functions import (
     plot_wmles_diagnostics,
     plot_history_points,
     plot_vertical_profiles,
+    plot_logbinned_spectra,
+    plot_spectrum_netcdf,
 )
 
 from .analysis_functions import (
@@ -25,6 +27,8 @@ __all__ = [
     "plot_wmles_diagnostics",
     "plot_history_points",
     "plot_vertical_profiles",
+    "plot_logbinned_spectra",
+    "plot_spectrum_netcdf",
     "calculate_Ri_grad",
     "get_blh",
     "rolling_mean",

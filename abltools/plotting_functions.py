@@ -597,7 +597,8 @@ def plot_logbinned_spectra(var, freq, nbins, ax, **kwargs):
         ax:         axis on which to plot the spectrum
 
     Returns:
-        None
+        f:          frequency bins
+        S:          spectral density
     """
     import scipy
 
@@ -615,8 +616,8 @@ def plot_logbinned_spectra(var, freq, nbins, ax, **kwargs):
     ) / 2  # The number of bins is 1 larger than the size of the spectrum, this is to plot the value in the middle of each bin
     ax.loglog(mid_bins, mid_bins * binned.statistic, **kwargs)
     # ax.set_xlabel("f") # frequency [Hz]
-    # ax.set_ylabel("fS") # S is the spectrum, it is common to multiply it by f
-    # The unit of S is s^2/m^2 for velocity spectra, K^2 for temperature spectra
+    # ax.set_ylabel("fS") # S is the spectral density, it is common to multiply it by f
+    # The unit of fS is s^2/m^2 for velocity spectra, K^2 for temperature spectra
     return mid_bins, binned.statistic
 
 
