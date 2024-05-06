@@ -124,6 +124,7 @@ def plot_spectrum_netcdf(
     t1: int,
     axis=None,
     label=None,
+    scale=False,
     inertial: bool = False,
     **kwargs,
 ) -> tuple[float, float]:
@@ -182,31 +183,51 @@ def plot_spectrum_netcdf(
         )
         p = p.mean(axis=1).mean(axis=-1)
 
-    if axis:
-        axis.plot(s, p * s, label=label, **kwargs)
+    if axis and scale:
+        # print("Scaling!")
+        axis.loglog(s, p * s, label=label, **kwargs)
 
-    if axis and inertial:
-        axis.plot(
-            s[10:],
-            s[10:] ** (-5 / 3) / 30000,
-            linewidth=1,
-            linestyle="dashed",
-            color="black",
-        )
+        if inertial:
+            axis.plot(
+                s[10:],
+                s[10:] ** (-2 / 3) / 30000,
+                linewidth=1,
+                linestyle="dashed",
+                color="black",
+            )
+
+    if axis and not scale:
+        # print("Not scaling!")
+        axis.loglog(s, p, label=label, **kwargs)
+
+        if inertial:
+            axis.plot(
+                s[10:],
+                s[10:] ** (-5 / 3) / 500,
+                linewidth=1,
+                linestyle="dashed",
+                color="black",
+            )
+
     return s, p
 
 
 #### Vertical Profiles #################################################################
 def plot_vertical_profiles(
-    f, label: str, case: str, plot_ref=True, color="C0", normalize_BLH=False
+    datasets: list,
+    labels: list,
+    case: str,
+    plot_ref=True,
+    color="C0",
+    normalize_BLH=False,
 ):
     """
     Create figure and plot vertical profiles of a number of variables
     for a given ABL case.
 
     Parameters:
-        f:                          xarray dataset with output from time_average.py
-        label (str):                label for legend
+        datasets:                   list of xarray datasets with output from time_average.py
+        label (str):                list of labels for legend
         case (str):                 name of case for reading Peter Sullivans reference data
         plot_ref (bool):            if True, plot reference curves from NCAR model
         color (str):                color for plotting the profiles
@@ -221,28 +242,22 @@ def plot_vertical_profiles(
 
     if case == "stable" or case == "neutral":
         t_ref = 265
-    elif case == "mixed" or "case" == "free_conv":
+    elif case == "mixed" or case == "free_conv":
         t_ref = 300
 
     fig, [
         [ax_u, ax_uw, ax_vw],
         [ax_uu, ax_vv, ax_ww],
-        [ax_www, ax_w_skew, ax_dTdz],
+        [ax_nutot, ax_w_skew, ax_dTdz],
         [ax_T, ax_TT, ax_Tv],
     ] = plt.subplots(4, 3, figsize=(12, 16), sharey=True)
 
-    y = f["y"][:]
-
-    if normalize_BLH:
-        z_i = f["y"].isel(y=(f["dtdy"][:]).argmax()).values
-        print(f"{z_i = }")
-        z_i_ref = read_BLH_from_ref(case)
-    else:
-        z_i = 1  # If not normalizing then just dividing by 1
-        z_i_ref = 1
-
     # --- Reference --------------------------------------------------------------------
     if plot_ref:
+        if normalize_BLH:
+            z_i_ref = read_BLH_from_ref(case)
+        else:
+            z_i_ref = 1
         u_ref, z_ref, _ = read_profile_from_ref("UXYM", case)
         ax_u.plot(u_ref, z_ref / z_i_ref, color="black", label="ref")
 
@@ -314,80 +329,117 @@ def plot_vertical_profiles(
         ax_TT.plot(TT_ref, z_ref / z_i_ref, color="black", label="ref")
 
     # --- U and V ----------------------------------------------------------------------
-    ax_u.plot(f["u"][:], y / z_i, label=label, color=color)
-    ax_u.set_xlabel("u, v")
-    ax_u.set_ylabel(r"$z$")
+    for i, (f, label) in enumerate(zip(datasets, labels)):
+        y = f["y"][:]
 
-    ax_u.plot(f["w"][:], y / z_i, color=color, linestyle="dashed")
+        if normalize_BLH:
+            z_i = f["y"].isel(y=(f["dtdy"][:]).argmax()).values
+            print(f"{z_i = }")
+            z_i_ref = read_BLH_from_ref(case)
+        else:
+            z_i = 1  # If not normalizing then just dividing by 1
+            z_i_ref = 1
 
-    # --- uu ---------------------------------------------------------------------------
-    ax_uu.plot(f["uu"][:], y / z_i, label=label, color=color)
-    ax_uu.set_xlabel("uu")
-    ax_uu.axvline(0, linewidth=0.5, color="black")
+        color = f"C{i}"
+        ax_u.plot(f["u"][:], y / z_i, label=label, color=color)
+        ax_u.set_xlabel("u, v")
 
-    # --- vv ---------------------------------------------------------------------------
-    ax_vv.plot(f["ww"][:], y / z_i, label=label, color=color)
-    ax_vv.set_xlabel("vv")
-    ax_vv.axvline(0, linewidth=0.5, color="black")
+        ax_u.plot(f["w"][:], y / z_i, color=color, linestyle="dashed")
 
-    # --- ww ---------------------------------------------------------------------------
-    ax_ww.plot(f["vv"][:], y / z_i, label=label, color=color)
-    ax_ww.set_xlabel("ww")
-    ax_ww.axvline(0, linewidth=0.5, color="black")
+        # --- uu ---------------------------------------------------------------------------
+        ax_uu.plot(f["uu"][:], y / z_i, label=label, color=color)
+        ax_uu.set_xlabel("uu")
+        ax_uu.axvline(0, linewidth=0.5, color="black")
 
-    # --- uw ---------------------------------------------------------------------------
-    ax_uw.plot(f["uv"][:] - f["nutotdudy"][:], y / z_i, color=color, label="total")
-    ax_uw.plot(f["uv"][:], y / z_i, linestyle="dashed", color=color, label="resolved")
-    ax_uw.plot(
-        -f["nutotdudy"][:], y / z_i, linestyle="dotted", color=color, label="subgrid"
-    )
-    ax_uw.set_xlabel("uw")
-    ax_uw.axvline(0, linewidth=0.5, color="black")
+        # --- vv ---------------------------------------------------------------------------
+        ax_vv.plot(f["ww"][:], y / z_i, label=label, color=color)
+        ax_vv.set_xlabel("vv")
+        ax_vv.axvline(0, linewidth=0.5, color="black")
 
-    # --- vw ---------------------------------------------------------------------------
-    ax_vw.plot(f["vw"][:] - f["nutotdvdy"][:], y / z_i)
-    ax_vw.plot(f["vw"][:], y / z_i, linestyle="dashed", color=color, label="resolved")
-    ax_vw.plot(
-        -f["nutotdvdy"][:], y / z_i, linestyle="dotted", color=color, label="subgrid"
-    )
-    ax_vw.set_xlabel("vw")
-    ax_vw.axvline(0, linewidth=0.5, color="black")
+        # --- ww ---------------------------------------------------------------------------
+        ax_ww.plot(f["vv"][:], y / z_i, label=label, color=color)
+        ax_ww.set_xlabel("ww")
+        ax_ww.axvline(0, linewidth=0.5, color="black")
 
-    # --- w skew -----------------------------------------------------------------------
-    ax_w_skew.plot(f["vvv"][:] / f["vv"][:] ** (3 / 2), y / z_i, color=color)
-    ax_w_skew.set_xlabel("w skewness", color=color)
-    ax_w_skew.axvline(0, linewidth=0.5, color="black")
+        # --- uw ---------------------------------------------------------------------------
+        ax_uw.plot(
+            f["uv"][:] - f["nutotdudy"][:], y / z_i, color=color
+        )  # , label="total")
+        ax_uw.plot(
+            f["uv"][:], y / z_i, linestyle="dashed", color=color  # , label="resolved"
+        )
+        ax_uw.plot(
+            -f["nutotdudy"][:],
+            y / z_i,
+            linestyle="dotted",
+            color=color,
+            # label="subgrid",
+        )
+        ax_uw.set_xlabel("uw")
+        ax_uw.axvline(0, linewidth=0.5, color="black")
 
-    # --- www --------------------------------------------------------------------------
-    ax_www.plot(f["vvv"][:], y / z_i, color=color)
-    ax_www.set_xlabel("www")
-    ax_www.axvline(0, linewidth=0.5, color="black")
+        # --- vw ---------------------------------------------------------------------------
+        ax_vw.plot(f["vw"][:] - f["nutotdvdy"][:], y / z_i)
+        ax_vw.plot(
+            f["vw"][:], y / z_i, linestyle="dashed", color=color, label="resolved"
+        )
+        ax_vw.plot(
+            -f["nutotdvdy"][:],
+            y / z_i,
+            linestyle="dotted",
+            color=color,
+            label="subgrid",
+        )
+        ax_vw.set_xlabel("vw")
+        ax_vw.axvline(0, linewidth=0.5, color="black")
 
-    # # --- T skew -----------------------------------------------------------------------
-    # T_skew_ref, z_ref, _ = read_profile_from_ref("TSKEW")
-    # ax_T_skew.plot(T_skew_ref, z_ref/z_i_ref, color="black", label="ref")
-    # ax_T_skew.plot(f["vvv"][:] / f["vv"][:]**(3/2), y/z_i)
-    # ax_T_skew.set_xlabel("w skewness")
+        # --- www --------------------------------------------------------------------------
+        ax_nutot.plot(f["nutot"][:], y / z_i, color=color)
+        ax_nutot.set_xlabel(r"Total $\nu_T$")
+        ax_nutot.axvline(0, linewidth=0.5, color="black")
 
-    # --- theta ------------------------------------------------------------------------
-    ax_T.plot(f["t"][:] - t_ref, y / z_i, color=color)
-    ax_T.set_xlabel(r"$\theta$")
+        # --- w skew -----------------------------------------------------------------------
+        ax_w_skew.plot(f["vvv"][:] / f["vv"][:] ** (3 / 2), y / z_i, color=color)
+        ax_w_skew.set_xlabel("w skewness")
+        ax_w_skew.axvline(0, linewidth=0.5, color="black")
 
-    ax_dTdz.plot(f["dtdy"][:], y / z_i, color=color)
-    ax_dTdz.set_xlabel(r"$\partial\theta/\partial z$")
+        # # --- T skew -----------------------------------------------------------------------
+        # T_skew_ref, z_ref, _ = read_profile_from_ref("TSKEW")
+        # ax_T_skew.plot(T_skew_ref, z_ref/z_i_ref, color="black", label="ref")
+        # ax_T_skew.plot(f["vvv"][:] / f["vv"][:]**(3/2), y/z_i)
+        # ax_T_skew.set_xlabel("w skewness")
 
-    ax_Tv.plot(f["tv"][:] - f["xitotdtdy"][:], y / z_i, label="total", color=color)
-    ax_Tv.plot(f["tv"][:], y / z_i, linestyle="dashed", color=color, label="resolved")
-    ax_Tv.plot(
-        -f["xitotdtdy"][:], y / z_i, linestyle="dotted", color=color, label="subgrid"
-    )
-    ax_Tv.set_xlabel(r"$\theta w$")
-    ax_Tv.axvline(0, linewidth=0.5, color="black")
+        # --- theta ------------------------------------------------------------------------
+        ax_T.plot(f["t"][:] - t_ref, y / z_i, color=color)
+        ax_T.set_xlabel(r"$\theta$")
 
-    ax_TT.plot(f["tt"][:], y / z_i, color=color)
-    ax_TT.set_xlabel(r"$\theta \theta$")
-    ax_TT.axvline(0, linewidth=0.5, color="black")
+        ax_dTdz.plot(f["dtdy"][:], y / z_i, color=color)
+        ax_dTdz.set_xlabel(r"$\partial\theta/\partial z$")
+        ax_dTdz.axvline(0, linewidth=0.5, color="black")
 
+        ax_Tv.plot(f["tv"][:] - f["xitotdtdy"][:], y / z_i, label="total", color=color)
+        ax_Tv.plot(
+            f["tv"][:], y / z_i, linestyle="dashed", color=color, label="resolved"
+        )
+        ax_Tv.plot(
+            -f["xitotdtdy"][:],
+            y / z_i,
+            linestyle="dotted",
+            color=color,
+            label="subgrid",
+        )
+        ax_Tv.set_xlabel(r"$\theta w$")
+        ax_Tv.axvline(0, linewidth=0.5, color="black")
+
+        ax_TT.plot(f["tt"][:], y / z_i, color=color)
+        ax_TT.set_xlabel(r"$\theta \theta$")
+        ax_TT.axvline(0, linewidth=0.5, color="black")
+
+        ax_u.legend(frameon=False)
+        ax_uw.legend(frameon=False)
+
+    for ax in fig.axes[::3]:
+        ax.set_ylabel(r"$z$ (m)")
     return fig
 
 
@@ -586,7 +638,7 @@ def add_hline(ax, y: float, linestyle="dashed") -> None:
 
 
 # %%
-def plot_logbinned_spectra(var, freq, nbins, ax, **kwargs):
+def plot_logbinned_spectra(var, freq, nbins, ax, scale_by_f=False, **kwargs):
     """
     Calculate power spectrum for a single variable, and plot the log-binned average
 
@@ -606,7 +658,7 @@ def plot_logbinned_spectra(var, freq, nbins, ax, **kwargs):
         var,
         freq,
         scaling="density",
-        detrend="linear",  # or "linear"
+        detrend="linear",  # or "constant"
         window="boxcar",
     )
     bins = np.logspace(np.log10(np.min(f[(f > 0)])), np.log10(np.max(f)), nbins)
@@ -614,14 +666,17 @@ def plot_logbinned_spectra(var, freq, nbins, ax, **kwargs):
     mid_bins = (
         binned.bin_edges[:-1] + binned.bin_edges[1:]
     ) / 2  # The number of bins is 1 larger than the size of the spectrum, this is to plot the value in the middle of each bin
-    ax.loglog(mid_bins, mid_bins * binned.statistic, **kwargs)
+    if scale_by_f:
+        ax.loglog(mid_bins, mid_bins * binned.statistic, **kwargs)
+    else:
+        ax.loglog(mid_bins, binned.statistic, **kwargs)
     # ax.set_xlabel("f") # frequency [Hz]
     # ax.set_ylabel("fS") # S is the spectral density, it is common to multiply it by f
     # The unit of fS is s^2/m^2 for velocity spectra, K^2 for temperature spectra
     return mid_bins, binned.statistic
 
 
-def AdjustAxes(axes, spines_to_remove=["top", "left"], origin=False):
+def adjust_axes(axes, spines_to_remove=["top", "left"], origin=False):
     """
     Input: list of axes, which axes to remove
     Output: no output
