@@ -5,6 +5,7 @@ from .plotting_functions import (
     plot_vertical_profiles,
     plot_logbinned_spectra,
     plot_spectrum_netcdf,
+    adjust_axes,
 )
 
 from .analysis_functions import (
@@ -29,6 +30,7 @@ __all__ = [
     "plot_vertical_profiles",
     "plot_logbinned_spectra",
     "plot_spectrum_netcdf",
+    "adjust_axes",
     "calculate_Ri_grad",
     "get_blh",
     "rolling_mean",
