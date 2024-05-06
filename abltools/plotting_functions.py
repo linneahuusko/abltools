@@ -443,46 +443,49 @@ def plot_vertical_profiles(
     return fig
 
 
-def plot_diagnostics(path: str):
+def plot_diagnostics(paths):
     """
     Plot timeseries of variables in a diagnostics.dat file
 
     Parameters:
-        path (str):     path to the case for which to plot diagnostics
+        paths (str or list):    path to the case for which to plot diagnostics, or
+                                list of paths to multiple cases
 
     Returns:
-        fig:            figure with the timeseries
+        fig:                    figure with the timeseries
 
-    Plots timeseries of friction velocity, time step length, and C
-    FL number.
-
+    Plots timeseries of friction velocity, time step length, and CFL number for one or
+    more cases.
     """
     import pandas as pd
 
-    try:
-        file = f"{path}/diagnostics.dat"
-        df = pd.read_csv(file, names=["time", "ustar", "dt", "CFL"]).dropna()
-    except FileNotFoundError:
-        file = f"{path}/diagnostics.txt"
-        df = pd.read_csv(file, names=["time", "ustar", "dt", "CFL"]).dropna()
-
     fig, axes = plt.subplots(3, 1, figsize=(8, 5), sharex=True)
-    end = None
-    axes[0].plot(
-        df["time"][:end], df["ustar"][:end]
-    )  # Friction velocity from wall model
-    axes[0].set_ylabel("$u_*$")
+    if type(paths) is not list: paths = [paths]
 
-    axes[1].plot(df["time"], df["dt"])  # Timestep length
-    axes[1].set_ylabel("dt")
+    for path in paths:
+        try:
+            file = f"{path}/diagnostics.dat"
+            df = pd.read_csv(file, names=["time", "ustar", "dt", "CFL"]).dropna()
+        except FileNotFoundError:
+            file = f"{path}/diagnostics.txt"
+            df = pd.read_csv(file, names=["time", "ustar", "dt", "CFL"]).dropna()
 
-    axes[2].plot(df["time"], df["CFL"])
-    axes[2].set_ylabel("CFL")
-    # axes[2].set_ylim(0.2, None)
-    axes[2].set_ylim(0.0, 0.6)
-    add_hline(axes[2], 0.5)  # Add reference line at target CFL=0.5
+        end = None
+        axes[0].plot(
+            df["time"][:end], df["ustar"][:end]
+        )  # Friction velocity from wall model
+        axes[0].set_ylabel("$u_*$")
 
-    axes[2].set_xlabel("Time [s]")
+        axes[1].plot(df["time"], df["dt"])  # Timestep length
+        axes[1].set_ylabel("dt")
+
+        axes[2].plot(df["time"], df["CFL"])
+        axes[2].set_ylabel("CFL")
+        # axes[2].set_ylim(0.2, None)
+        axes[2].set_ylim(0.0, 0.6)
+        add_hline(axes[2], 0.5)  # Add reference line at target CFL=0.5
+
+        axes[2].set_xlabel("Time [s]")
 
     return fig, df
 
