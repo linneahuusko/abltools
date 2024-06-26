@@ -161,6 +161,7 @@ def plot_spectrum_netcdf(
             window="boxcar",
         )
         p = p.mean(axis=-1).mean(axis=0)
+
     elif dimension == "z":
         s, p = signal.periodogram(
             ds[variable].sel(y=height, method="nearest").sel(time=slice(t0, t1)),
@@ -410,7 +411,10 @@ def plot_vertical_profiles(
         # ax_T_skew.set_xlabel("w skewness")
 
         # --- theta ------------------------------------------------------------------------
-        ax_T.plot(f["t"][:] - t_ref, y / z_i, color=color)
+        try:
+            ax_T.plot(f["t"][:] - t_ref, y / z_i, color=color)
+        except UnboundLocalError:
+            ax_T.plot(f["t"][:], y / z_i, color=color)
         ax_T.set_xlabel(r"$\theta$")
 
         ax_dTdz.plot(f["dtdy"][:], y / z_i, color=color)
@@ -460,7 +464,8 @@ def plot_diagnostics(paths):
     import pandas as pd
 
     fig, axes = plt.subplots(3, 1, figsize=(8, 5), sharex=True)
-    if type(paths) is not list: paths = [paths]
+    if type(paths) is not list:
+        paths = [paths]
 
     for path in paths:
         try:

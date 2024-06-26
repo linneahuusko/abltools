@@ -27,7 +27,9 @@ def read_profile_from_ref(variable: str, case: str):
     """
     if case == "stable":
         file = f"{ref_dir}/fa1.xy"
-    if case == "stable_512":
+    elif case == "stable200":
+        file = f"{ref_dir}/fa2.xy"
+    elif case == "stable_512":
         file = f"{ref_dir}/ea4.xy"
     elif case == "free_conv":
         file = f"{ref_dir}/ra1.xy"
