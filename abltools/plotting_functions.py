@@ -381,12 +381,12 @@ def plot_vertical_profiles(
         ax_uw.axvline(0, linewidth=0.5, color="black")
 
         # --- vw ---------------------------------------------------------------------------
-        ax_vw.plot(f["vw"][:] - f["nutotdvdy"][:], y / z_i)
+        ax_vw.plot(f["vw"][:] - f["nutotdwdy"][:], y / z_i)
         ax_vw.plot(
             f["vw"][:], y / z_i, linestyle="dashed", color=color, label="resolved"
         )
         ax_vw.plot(
-            -f["nutotdvdy"][:],
+            -f["nutotdwdy"][:],
             y / z_i,
             linestyle="dotted",
             color=color,
@@ -743,6 +743,7 @@ def profile_broken_axis(variables, colors, labels, y, upper_ylim, lower_ylim, **
         len(variables),
         figsize=(4 * len(variables) + 1, 4),
         sharey="row",
+        sharex="col",
         gridspec_kw={"height_ratios": [1, ratio]},
     )
 
