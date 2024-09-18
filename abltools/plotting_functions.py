@@ -329,22 +329,23 @@ def plot_vertical_profiles(
         TT_ref, z_ref, _ = read_profile_from_ref("TPS", case)
         ax_TT.plot(TT_ref, z_ref / z_i_ref, color="black", label="ref")
 
-    # --- U and V ----------------------------------------------------------------------
+    z_i_list = []
     for i, (f, label) in enumerate(zip(datasets, labels)):
         y = f["y"][:]
 
         if normalize_BLH:
             z_i = f["y"].isel(y=(f["dtdy"][:]).argmax()).values
             print(f"{z_i = }")
+            z_i_list.append(z_i)
             z_i_ref = read_BLH_from_ref(case)
         else:
             z_i = 1  # If not normalizing then just dividing by 1
             z_i_ref = 1
 
+        # --- U and V ----------------------------------------------------------------------
         color = f"C{i}"
         ax_u.plot(f["u"][:], y / z_i, label=label, color=color)
         ax_u.set_xlabel("u, v")
-
         ax_u.plot(f["w"][:], y / z_i, color=color, linestyle="dashed")
 
         # --- uu ---------------------------------------------------------------------------
@@ -444,7 +445,7 @@ def plot_vertical_profiles(
 
     for ax in fig.axes[::3]:
         ax.set_ylabel(r"$z$ (m)")
-    return fig
+    return fig, z_i_list
 
 
 def plot_diagnostics(paths):
@@ -466,7 +467,7 @@ def plot_diagnostics(paths):
     fig, axes = plt.subplots(3, 1, figsize=(8, 5), sharex=True)
     if type(paths) is not list:
         paths = [paths]
-
+    dfs = []
     for path in paths:
         try:
             file = f"{path}/diagnostics.dat"
@@ -492,7 +493,8 @@ def plot_diagnostics(paths):
 
         axes[2].set_xlabel("Time [s]")
 
-    return fig, df
+        dfs.append(df)
+    return fig, dfs
 
 
 def plot_wmles_diagnostics(path: str):
@@ -711,3 +713,106 @@ def adjust_axes(axes, spines_to_remove=["top", "left"], origin=False):
                     ax.xaxis.set_label_position(spine)
                     if origin:
                         ax.spines[spine].set_position("zero")
+
+
+def profile_broken_axis(variables, colors, labels, y, upper_ylim, lower_ylim, **kwargs):
+    """
+    Create a figure plotting the vertical profile of each variable in `variables` in its
+    own panel, with a broken y-axis
+
+    Parameters:
+        variables:          list of 1d xarrays with the profiles of the variables to plot
+        colors:             list of colors to plot each variable in
+        labels:             list pf labels for each variable
+        y:                  1d xarray with vertical coordinate
+        upper_ylim:         tuple with two values, giving the range of the yaxis above the break
+        lower_ylim:         tuple with two values, giving the range of the yaxis below the break
+        kwargs:             key word arguments to be forwarded to the plt.plot function
+
+    Returns:
+        fig:                figure with the variables plotted
+        axes:               axes of the figure
+    """
+    upper_range = upper_ylim[1] - upper_ylim[0]
+    lower_range = lower_ylim[1] - lower_ylim[0]
+
+    ratio = lower_range / upper_range
+
+    fig, axes = plt.subplots(
+        2,
+        len(variables),
+        figsize=(4 * len(variables) + 1, 4),
+        sharey="row",
+        gridspec_kw={"height_ratios": [1, ratio]},
+    )
+
+    for i, (variable, color, label) in enumerate(zip(variables, colors, labels)):
+        if len(variables) > 1:
+            broken_axis(
+                axes[:, i],
+                variable,
+                y,
+                upper_ylim,
+                lower_ylim,
+                color=color,
+                label=label,
+                **kwargs,
+            )
+        else:
+            broken_axis(
+                axes[:],
+                variable,
+                y,
+                upper_ylim,
+                lower_ylim,
+                color=color,
+                label=label,
+                **kwargs,
+            )
+
+    return fig, axes
+
+
+def broken_axis(axes, variable, y, upper_ylim, lower_ylim, color, label, **kwargs):
+    """
+    Plot the vertical profile of a given variable on a given axis and create a break in
+    the y-axis according to the given limits
+
+    Parameters:
+        variable:           1d xarray with the profile of the variable to plot
+        color:              color to plot the profile in
+        label:              label to put in figure legend for the variable
+        y:                  1d xarray with vertical coordinate
+        upper_ylim:         tuple with two values, giving the range of the yaxis above the break
+        lower_ylim:         tuple with two values, giving the range of the yaxis below the break
+
+    Returns:
+        None
+    """
+    for ax in axes:
+        ax.plot(variable, y, color=color, label=label, **kwargs)
+
+    axes[0].set_ylim(upper_ylim)
+    axes[1].set_ylim(lower_ylim)
+
+    axes[0].spines.bottom.set_visible(False)
+    axes[1].spines.top.set_visible(False)
+
+    axes[0].xaxis.tick_top()
+    axes[0].tick_params(labeltop=False, top=False)  # Don't put tick labels at the top
+    axes[1].xaxis.tick_bottom()
+
+    d = 0.5  # Proportion of vertical to horizontal extent of the slanted line
+    kwargs = dict(
+        marker=[(-1, -d), (1, d)],
+        markersize=12,
+        linestyle="none",
+        color="k",
+        mec="k",
+        mew=1,
+        clip_on=False,
+    )
+
+    # Create diagonal lines indicating broken axes
+    axes[0].plot([0, 1], [0, 0], transform=axes[0].transAxes, **kwargs)
+    axes[1].plot([0, 1], [1, 1], transform=axes[1].transAxes, **kwargs)

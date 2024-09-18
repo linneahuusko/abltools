@@ -6,6 +6,7 @@ from .plotting_functions import (
     plot_logbinned_spectra,
     plot_spectrum_netcdf,
     adjust_axes,
+    profile_broken_axis,
 )
 
 from .analysis_functions import (
@@ -40,4 +41,5 @@ __all__ = [
     "read_profile_from_ref",
     "read_timeseries_from_ref",
     "read_BLH_from_ref",
+    "profile_broken_axis",
 ]
