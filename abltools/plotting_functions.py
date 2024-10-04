@@ -715,7 +715,17 @@ def adjust_axes(axes, spines_to_remove=["top", "left"], origin=False):
                         ax.spines[spine].set_position("zero")
 
 
-def profile_broken_axis(variables, colors, labels, y, upper_ylim, lower_ylim, **kwargs):
+def profile_broken_axis(
+    variables,
+    colors,
+    labels,
+    y,
+    upper_ylim,
+    lower_ylim,
+    connect,
+    figsize=None,
+    **kwargs,
+):
     """
     Create a figure plotting the vertical profile of each variable in `variables` in its
     own panel, with a broken y-axis
@@ -737,55 +747,60 @@ def profile_broken_axis(variables, colors, labels, y, upper_ylim, lower_ylim, **
     lower_range = lower_ylim[1] - lower_ylim[0]
 
     ratio = lower_range / upper_range
-
+    if not figsize:
+        figsize = (4 * len(variables) + 1, 4)
     fig, axes = plt.subplots(
         2,
         len(variables),
-        figsize=(4 * len(variables) + 1, 4),
+        figsize=figsize,
         sharey="row",
         sharex="col",
         gridspec_kw={"height_ratios": [1, ratio]},
     )
 
-    for i, (variable, color, label) in enumerate(zip(variables, colors, labels)):
+    for i, (variable, color, label, connect_current) in enumerate(
+        zip(variables, colors, labels, connect)
+    ):
         if len(variables) > 1:
-            broken_axis(
-                axes[:, i],
-                variable,
-                y,
-                upper_ylim,
-                lower_ylim,
-                color=color,
-                label=label,
-                **kwargs,
-            )
+            current_axes = axes[:, i]
         else:
-            broken_axis(
-                axes[:],
+            current_axes = axes[:]
+        broken_yaxis(
+            current_axes,
+            variable,
+            y,
+            upper_ylim,
+            lower_ylim,
+            color=color,
+            label=label,
+            **kwargs,
+        )
+        if connect_current:
+            connect_points_between_yaxes(
+                current_axes,
                 variable,
                 y,
                 upper_ylim,
                 lower_ylim,
-                color=color,
-                label=label,
-                **kwargs,
+                color,
             )
 
     return fig, axes
 
 
-def broken_axis(axes, variable, y, upper_ylim, lower_ylim, color, label, **kwargs):
+def broken_yaxis(axes, variable, y, upper_ylim, lower_ylim, color, label, **kwargs):
     """
     Plot the vertical profile of a given variable on a given axis and create a break in
     the y-axis according to the given limits
 
     Parameters:
+        axes:               axes that will make out the top and bottom parts of the plot
         variable:           1d xarray with the profile of the variable to plot
-        color:              color to plot the profile in
-        label:              label to put in figure legend for the variable
         y:                  1d xarray with vertical coordinate
         upper_ylim:         tuple with two values, giving the range of the yaxis above the break
         lower_ylim:         tuple with two values, giving the range of the yaxis below the break
+        color:              color to plot the profile in
+        label:              label to put in figure legend for the variable
 
     Returns:
         None
@@ -817,3 +832,101 @@ def broken_axis(axes, variable, y, upper_ylim, lower_ylim, color, label, **kwarg
     # Create diagonal lines indicating broken axes
     axes[0].plot([0, 1], [0, 0], transform=axes[0].transAxes, **kwargs)
     axes[1].plot([0, 1], [1, 1], transform=axes[1].transAxes, **kwargs)
+
+
+def connect_points_between_yaxes(axes, variable, y, upper_ylim, lower_ylim, color):
+    """
+    Create a dashed line that connects the profile values across the broken y-axis
+
+    Parameters:
+        axes:               axes that will make out the top and bottom parts of the plot
+        variable:           1d xarray or numpy array with the profile of the variable to plot
+        y:                  1d xarray with vertical coordinate
+        upper_ylim:         tuple with two values, giving the range of the yaxis above the break
+        lower_ylim:         tuple with two values, giving the range of the yaxis below the break
+        color:              color to plot the profile in
+
+    Returns:
+        None
+    """
+
+    from matplotlib.patches import ConnectionPatch
+    import xarray as xr
+
+    # Find which points to connect (select profile value at the top of the lower panel
+    # and the bottom of the upper panel)
+    if type(y) == np.ndarray:
+        xyA = (variable[np.argmin(np.abs(y - lower_ylim[1]))], lower_ylim[1])
+        xyB = (variable[np.argmin(np.abs(y - upper_ylim[0]))], upper_ylim[0])
+    elif type(y) == xr.core.dataarray.DataArray:
+        xyA = (
+            variable.drop_duplicates("y").sel(y=lower_ylim[1], method="nearest"),
+            lower_ylim[1],
+        )
+        xyB = (
+            variable.drop_duplicates("y").sel(y=upper_ylim[0], method="nearest"),
+            upper_ylim[0],
+        )
+
+    # Create connection
+    con = ConnectionPatch(
+        xyA=xyA,
+        xyB=xyB,
+        coordsA="data",
+        coordsB="data",
+        axesA=axes[1],
+        axesB=axes[0],
+        linestyle=(0, (5, 5)),
+        linewidth=1,
+        color=color,
+    )
+
+    # Add connection
+    axes[0].add_artist(con)
+
+
+def connect_points_between_timeseries(axes, variable, x_cutoff, color):
+    """
+    Create a dashed line that connects the profile values across the broken x-axis
+
+    Parameters:
+        axes:               axes that will make out the left and right parts of the plot
+        variable:           1d xarray with the profile of the variable to plot
+        x:                  1d xarray with horizontal coordinate
+        left_xlim:          tuple with two values, giving the range of the xaxis before the break
+        right_xlim:         tuple with two values, giving the range of the xaxis after the break
+        color:              color to plot the profile in
+
+    Returns:
+        None
+    """
+
+    from matplotlib.patches import ConnectionPatch
+    import xarray as xr
+
+    # Find which points to connect (select profile value at the right of the left panel
+    # and the left of the right panel)
+    xyA = (
+        x_cutoff,
+        variable.sel(time=x_cutoff, method="nearest"),
+    )
+    xyB = (
+        x_cutoff,
+        variable.sel(time=x_cutoff, method="nearest"),
+    )
+
+    # Create connection
+    con = ConnectionPatch(
+        xyA=xyA,
+        xyB=xyB,
+        coordsA="data",
+        coordsB="data",
+        axesA=axes[0],
+        axesB=axes[1],
+        linestyle=(0, (5, 5)),
+        linewidth=1,
+        color=color,
+    )
+
+    # Add connection
+    axes[1].add_artist(con)
