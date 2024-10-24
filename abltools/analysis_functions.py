@@ -142,3 +142,140 @@ def get_averages(df):
         averages[parameter] = values[int(0.9 * length) :].mean()
 
     return averages
+
+
+def spectral_energy_density(data, dx: float):
+    """
+    Compute the spectral energy density of a signal, scaled such that the integral
+    over the spectrum equals the variance of the signal
+
+    Parameters:
+        data (array):       array containing the signal
+        dx (float):         spacing of the values in the data
+
+    Returns:
+        S (array):          spectral energy density
+        k (array):          wavenumbers corresponding to S
+
+    The spectral energy density S is defined as by equation 8.6.2b in Stull 1988.
+
+    This function assumes that the signal has no trend, so no detrending is performed
+    other than removing the mean. Furthermore, the signal is assumed to be periodic,
+    and therefore the function does not perform any tapering at the ends of the data
+    array.
+    """
+
+    import numpy as np
+
+    N = len(data)
+    detrended = data - data.mean()
+
+    fft = np.fft.rfft(detrended)  # Fourier transform
+    k = np.fft.rfft(N, dx) * 2 * np.pi  # wavenumber vector
+    dk = 2 * np.pi / (N * dx)  # wavenumber spacing
+
+    S = (2 / N**2) * (abs(fft) ** 2 / dk)  # spectral energy density
+
+    return S, k
+
+
+def spectral_energy_density_2d(data, dx: float, dy: float):
+    """
+    Compute the two-dimensional spectral energy density of a signal, scaled such that
+    the integral over the spectrum equals the variance of the signal
+
+    Parameters:
+        data (array):       2d array containing the signal
+        dx (float):         spacing of the values in the data in the x-direction
+        dy (float):         spacing of the values in the data in the y-direction
+
+    Returns:
+        S (array):          spectral energy density
+        kx (array):         wavenumbers corresponding to S in the x-direction
+        ky (array):         wavenumbers corresponding to S in the y-direction
+
+    The spectral energy density S is defined as by equation 8.6.2b in Stull 1988,
+    generalised to two dimensions.
+
+    This function assumes that the signal has no trend, so no detrending is performed
+    other than removing the mean. Furthermore, the signal is assumed to be periodic,
+    and therefore the function does not perform any tapering at the ends of the data
+    array.
+    """
+
+    import numpy as np
+
+    Nx, Ny = data.shape
+    detrended = data - data.mean()
+
+    fft = np.fft.fft2(detrended)
+
+    kx = np.fft.fftfreq(Nx, d=dx) * 2 * np.pi
+    ky = np.fft.fftfreq(Ny, d=dy) * 2 * np.pi
+
+    dkx = 2 * np.pi / (Nx * dx)
+    dky = 2 * np.pi / (Ny * dy)
+
+    S = (1) * abs(fft / (Nx * Ny)) ** 2 / (dkx * dky)
+
+    return S, kx, ky
+
+
+def flatten_spectral_density(S, kx, ky):
+    """
+    Projects the spectral energy density S onto the magnitude of the wavenumber vector,
+    resulting in a flattening from 2d to 1d
+
+    Parameters:
+        S (array):          array containing a spectral energy density
+        kx (array):         wavenumbers corresponding to S in the x-direction
+        ky (array):         wavenumbers corresponding to S in the y-direction
+
+    Returns:
+        S_flat (array):             a flattened version of S, projected onto k_magnitude
+        k_magnitude_flat (array):   the magnitude of the wavenumber vector
+
+    k_magnitude is the length of the vector (kx, ky), defined as sqrt(kx**2 + ky**2).
+    """
+
+    import numpy as np
+
+    KX, KY = np.meshgrid(kx, ky, indexing="ij")
+    k_magnitude = np.sqrt(KX**2 + KY**2).flatten()
+
+    S_flat = S.flatten()
+
+    return S_flat, k_magnitude
+
+
+def radial_average(data, k, bins=100):
+    """
+    Compute a radial average of a power spectrum by binning over the wavenumber vector
+    k and averaging over the bins
+
+    Parameters:
+        data (array):       power spectrum to average over
+        k (array):          wavenumbers corresponding to the spectrum
+
+    Returns:
+        average_power_spectrum (array):     radially averaged power spectrum
+        bin_centers (array):                k value a the center of each bin
+    """
+    import numpy as np
+
+    k_bins = np.linspace(0, np.max(k), bins + 1)
+
+    bin_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
+
+    average_power_spectrum = np.zeros(bins)
+    counts = np.zeros(bins)
+
+    for i in range(len(k)):
+        k_index = np.digitize(k[i], k_bins) - 1
+        if k_index >= 0 and k_index < bins:
+            average_power_spectrum[k_index] += data[i]
+            counts[k_index] += 1
+
+    average_power_spectrum[counts > 0] /= counts[counts > 0]
+
+    return average_power_spectrum, bin_centers

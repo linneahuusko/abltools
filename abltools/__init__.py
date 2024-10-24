@@ -18,6 +18,10 @@ from .analysis_functions import (
     read_variable_from_ref,
     read_BLH_from_ref,
     get_averages,
+    spectral_energy_density,
+    spectral_energy_density_2d,
+    flatten_spectral_density,
+    radial_average,
 )
 
 from .read_reference_data import (
@@ -40,6 +44,10 @@ __all__ = [
     "read_variable_from_ref",
     "read_BLH_from_ref",
     "get_averages",
+    "spectral_energy_density",
+    "spectral_energy_density_2d",
+    "flatten_spectral_density",
+    "radial_average",
     "read_profile_from_ref",
     "read_timeseries_from_ref",
     "read_BLH_from_ref",
