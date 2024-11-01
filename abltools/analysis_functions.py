@@ -221,10 +221,10 @@ def spectral_energy_density_2d(data, dx: float, dy: float):
     return S, kx, ky
 
 
-def flatten_spectral_density(S, kx, ky):
+def radial_average(S, kx, ky, bins=100):
     """
-    Projects the spectral energy density S onto the magnitude of the wavenumber vector,
-    resulting in a flattening from 2d to 1d
+    Compute a radial average of a spectral energy density by binning over the wavenumber
+    vector k and averaging over the bins
 
     Parameters:
         S (array):          array containing a spectral energy density
@@ -232,50 +232,23 @@ def flatten_spectral_density(S, kx, ky):
         ky (array):         wavenumbers corresponding to S in the y-direction
 
     Returns:
-        S_flat (array):             a flattened version of S, projected onto k_magnitude
-        k_magnitude_flat (array):   the magnitude of the wavenumber vector
-
-    k_magnitude is the length of the vector (kx, ky), defined as sqrt(kx**2 + ky**2).
-    """
-
-    import numpy as np
-
-    KX, KY = np.meshgrid(kx, ky, indexing="ij")
-    k_magnitude = np.sqrt(KX**2 + KY**2).flatten()
-
-    S_flat = S.flatten()
-
-    return S_flat, k_magnitude
-
-
-def radial_average(data, k, bins=100):
-    """
-    Compute a radial average of a power spectrum by binning over the wavenumber vector
-    k and averaging over the bins
-
-    Parameters:
-        data (array):       power spectrum to average over
-        k (array):          wavenumbers corresponding to the spectrum
-
-    Returns:
         average_power_spectrum (array):     radially averaged power spectrum
         bin_centers (array):                k value a the center of each bin
     """
     import numpy as np
 
-    k_bins = np.linspace(0, np.max(k), bins + 1)
+    KX, KY = np.meshgrid(kx, ky, indexing="ij")
+    kh = np.sqrt(KX**2 + KY**2).flatten()
 
+    S_flat = S.flatten()
+
+    k_bins = np.linspace(0, np.max(kh), bins + 1)
     bin_centers = 0.5 * (k_bins[:-1] + k_bins[1:])
 
-    average_power_spectrum = np.zeros(bins)
-    counts = np.zeros(bins)
+    S_kh = np.zeros(len(bin_centers))
+    for i in range(len(bin_centers)):
+        in_bin = (kh >= k_bins[i]) & (kh < k_bins[i + 1])
+        if np.any(in_bin):
+            S_kh[i] = np.mean(S_flat[in_bin] * kh[in_bin])  # Include kh factor
 
-    for i in range(len(k)):
-        k_index = np.digitize(k[i], k_bins) - 1
-        if k_index >= 0 and k_index < bins:
-            average_power_spectrum[k_index] += data[i]
-            counts[k_index] += 1
-
-    average_power_spectrum[counts > 0] /= counts[counts > 0]
-
-    return average_power_spectrum, bin_centers
+    return S_kh, bin_centers
