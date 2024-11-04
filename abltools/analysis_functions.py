@@ -216,12 +216,12 @@ def spectral_energy_density_2d(data, dx: float, dy: float):
     dkx = 2 * np.pi / (Nx * dx)
     dky = 2 * np.pi / (Ny * dy)
 
-    S = (1) * abs(fft / (Nx * Ny)) ** 2 / (dkx * dky)
+    S = abs(fft / (Nx * Ny)) ** 2 / (dkx * dky)
 
     return S, kx, ky
 
 
-def radial_average(S, kx, ky, bins=100):
+def radial_average(S, kx, ky, bins=100, rfft=False):
     """
     Compute a radial average of a spectral energy density by binning over the wavenumber
     vector k and averaging over the bins
@@ -249,6 +249,8 @@ def radial_average(S, kx, ky, bins=100):
     for i in range(len(bin_centers)):
         in_bin = (kh >= k_bins[i]) & (kh < k_bins[i + 1])
         if np.any(in_bin):
-            S_kh[i] = np.mean(S_flat[in_bin] * kh[in_bin])  # Include kh factor
+            S_kh[i] = (
+                2 * np.pi * np.mean(S_flat[in_bin] * kh[in_bin])
+            )  # Include kh factor
 
     return S_kh, bin_centers
