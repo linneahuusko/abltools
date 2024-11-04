@@ -20,7 +20,6 @@ from .analysis_functions import (
     get_averages,
     spectral_energy_density,
     spectral_energy_density_2d,
-    flatten_spectral_density,
     radial_average,
 )
 
@@ -46,7 +45,6 @@ __all__ = [
     "get_averages",
     "spectral_energy_density",
     "spectral_energy_density_2d",
-    "flatten_spectral_density",
     "radial_average",
     "read_profile_from_ref",
     "read_timeseries_from_ref",
