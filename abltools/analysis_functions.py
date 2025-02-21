@@ -171,7 +171,7 @@ def spectral_energy_density(data, dx: float):
     detrended = data - data.mean()
 
     fft = np.fft.rfft(detrended)  # Fourier transform
-    k = np.fft.rfft(N, dx) * 2 * np.pi  # wavenumber vector
+    k = np.fft.rfftfreq(N, dx) * 2 * np.pi  # wavenumber vector
     dk = 2 * np.pi / (N * dx)  # wavenumber spacing
 
     S = (2 / N**2) * (abs(fft) ** 2 / dk)  # spectral energy density
