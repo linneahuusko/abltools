@@ -8,7 +8,7 @@ Linnea Huusko, 2024-03-11
 import re
 import numpy as np
 
-ref_dir = "/cfs/klemming/projects/snic/abl-les/ABL/nec5000"
+ref_dir = "/cfs/klemming/projects/snic/abl-les/ABL/paper1/nec5000"
 
 
 def read_profile_from_ref(variable: str, case: str):
