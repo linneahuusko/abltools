@@ -1,6 +1,7 @@
 from .plotting_functions import (
     plot_diagnostics,
     plot_wmles_diagnostics,
+    plot_wmles_tau_diagnostics,
     plot_history_points,
     plot_vertical_profiles,
     plot_logbinned_spectra,
@@ -32,6 +33,7 @@ from .read_reference_data import (
 __all__ = [
     "plot_diagnostics",
     "plot_wmles_diagnostics",
+    "plot_wmles_tau_diagnostics",
     "plot_history_points",
     "plot_vertical_profiles",
     "plot_logbinned_spectra",

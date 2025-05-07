@@ -515,14 +515,49 @@ def plot_wmles_diagnostics(path: str):
 
     fig, axes = plt.subplots(2, 1, figsize=(8, 3.5), sharex=True)
     end = None
-    axes[0].plot(df["time"][:end], df["q"][:end])  # Friction velocity from wall model
+    axes[0].plot(df["time"][:end], df["q"][:end])  # Surface heat flux from wall model
     axes[0].set_ylabel("$q$")
 
-    axes[1].plot(df["time"], df["L"], label="mean L")  # Timestep length
+    axes[1].plot(df["time"], df["L"], label="mean L")  # Obukhov length
     axes[1].set_ylabel("$L$")
 
     axes[1].plot(df["time"], df["L_min"], label="min L")
     axes[1].plot(df["time"], df["L_max"], label="max L")
+
+    axes[1].set_xlabel("Time [s]")
+    axes[1].legend(frameon=False)
+
+    return fig, df
+
+
+def plot_wmles_tau_diagnostics(path: str):
+    """
+    Plot timeseries of variables in a wmles.dat file (surface heat flux (q), average,
+    minimum and maximum Obukhov length (L))
+
+    Parameters:
+        path (str):     path to the case for which to plot diagnostics
+
+    Returns:
+        fig:            figure with the timeseries
+    """
+    import pandas as pd
+
+    file = f"{path}/wmles_tau.dat"
+    df = pd.read_csv(file, names=["time", "utau", "u", "v", "w"]).dropna()
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 3.5), sharex=True)
+    end = None
+    axes[0].plot(
+        df["time"][:end], df["utau"][:end]
+    )  # Friction velocity from wall model
+    axes[0].set_ylabel(r"$u_{\tau}$")
+
+    axes[1].plot(df["time"], df["u"], label="u")  # Timestep length
+    axes[1].set_ylabel("Velocity [m/s]")
+
+    axes[1].plot(df["time"], df["v"], label="v")
+    axes[1].plot(df["time"], df["w"], label="w")
 
     axes[1].set_xlabel("Time [s]")
     axes[1].legend(frameon=False)
