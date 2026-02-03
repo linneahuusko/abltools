@@ -221,6 +221,7 @@ def plot_vertical_profiles(
     plot_ref=True,
     color="C0",
     normalize_BLH=False,
+    negative=[False],
 ):
     """
     Create figure and plot vertical profiles of a number of variables
@@ -343,6 +344,14 @@ def plot_vertical_profiles(
             z_i_ref = 1
 
         # --- U and V ----------------------------------------------------------------------
+        if negative[i]:
+            f["u"][:] = -f["u"][:]
+            f["w"][:] = -f["w"][:]
+            f["uv"][:] = -f["uv"][:]
+            f["nutotdudy"][:] = -f["nutotdudy"][:]
+            f["vw"][:] = -f["vw"][:]
+            f["nutotdwdy"][:] = -f["nutotdwdy"][:]
+
         color = f"C{i}"
         ax_u.plot(f["u"][:], y / z_i, label=label, color=color)
         ax_u.set_xlabel("u, v")
@@ -364,18 +373,16 @@ def plot_vertical_profiles(
         ax_ww.axvline(0, linewidth=0.5, color="black")
 
         # --- uw ---------------------------------------------------------------------------
+        ax_uw.plot(f["uv"][:] - f["nutotdudy"][:], y / z_i, color=color, label="total")
         ax_uw.plot(
-            f["uv"][:] - f["nutotdudy"][:], y / z_i, color=color
-        )  # , label="total")
-        ax_uw.plot(
-            f["uv"][:], y / z_i, linestyle="dashed", color=color  # , label="resolved"
+            f["uv"][:], y / z_i, linestyle="dashed", color=color, label="resolved"
         )
         ax_uw.plot(
             -f["nutotdudy"][:],
             y / z_i,
             linestyle="dotted",
             color=color,
-            # label="subgrid",
+            label="subgrid",
         )
         ax_uw.set_xlabel("uw")
         ax_uw.axvline(0, linewidth=0.5, color="black")
@@ -497,7 +504,185 @@ def plot_diagnostics(paths):
     return fig, dfs
 
 
-def plot_wmles_diagnostics(path: str):
+def plot_timestep_diagnostics(cases: dict):
+    """
+    Plot timeseries of variables in a diagnostics.dat file
+
+    Parameters:
+        paths (str or list):    path to the case for which to plot diagnostics, or
+                                list of paths to multiple cases
+
+    Returns:
+        fig:                    figure with the timeseries
+
+    Plots timeseries of friction velocity, time step length, and CFL number for one or
+    more cases.
+    """
+    import pandas as pd
+
+    fig, axes = plt.subplots(2, 1, figsize=(8, 3.5), sharex=True)
+    # if type(paths) is not list:
+    #     paths = [paths]
+    dfs = []
+    for i, (label, path) in enumerate(cases.items()):
+        file = f"{path}/timestep.dat"
+        df = pd.read_csv(file, names=["time", "dt", "CFL"]).dropna()
+
+        axes[0].plot(df["time"], df["dt"], label=label)  # Timestep length
+        axes[0].set_ylabel("dt")
+        axes[0].legend(frameon=False)
+
+        axes[1].plot(df["time"], df["CFL"])
+        axes[1].set_ylabel("CFL")
+        axes[1].set_ylim(0.0, 0.6)
+        add_hline(axes[1], 0.5)  # Add reference line at target CFL=0.5
+
+        axes[1].set_xlabel("Time [s]")
+
+        dfs.append(df)
+    return fig, dfs
+
+
+def plot_wmles_diagnostics(cases: dict):  # paths: list, labels: list):
+    """
+    Plot timeseries of variables in a wmles.dat file (friction velocity, u, v, w,
+    surface heat flux, Obukhov length, sampled temperature, and surface temperature).
+
+    Parameters:
+        paths (list):     list of paths to the cases for which to plot diagnostics
+
+    Returns:
+        fig:            figure with the timeseries
+    """
+    import pandas as pd
+    from matplotlib.lines import Line2D
+
+    fig, axes = plt.subplots(6, 1, figsize=(8, 11), sharex=True)
+    dfs = []
+    for i, (label, path) in enumerate(cases.items()):
+        file = f"{path}/wmles.dat"
+        df = pd.read_csv(file)
+
+        if df.shape[1] == 16:
+            df.columns = [
+                "time",
+                "utau",
+                "u",
+                "v",
+                "w",
+                "q",
+                "q_min",
+                "q_max",
+                "L",
+                "L_min",
+                "L_max",
+                "t",
+                "ts",
+                "Ri",
+                "Ri_min",
+                "Ri_max",
+            ]
+        elif df.shape[1] == 12:
+            df.columns = [
+                "time",
+                "utau",
+                "u",
+                "v",
+                "w",
+                "q",
+                "L",
+                "L_min",
+                "L_max",
+                "t",
+                "ts",
+                "Ri",
+            ]
+        elif df.shape[1] == 11:
+            df.columns = [
+                "time",
+                "utau",
+                "u",
+                "v",
+                "w",
+                "q",
+                "L",
+                "L_min",
+                "L_max",
+                "t",
+                "ts",
+            ]
+
+        axes[0].plot(df["time"], df["utau"], color=f"C0{i}", label=label)
+        axes[0].set_ylabel("$u_*$ (m/s)")
+        axes[0].legend(frameon=False)
+
+        axes[1].plot(df["time"], df["u"], label="u", color=f"C0{i}")  # Timestep length
+        axes[1].plot(df["time"], df["v"], label="v", linestyle="dotted", color=f"C0{i}")
+        axes[1].plot(df["time"], df["w"], label="w", linestyle="dashed", color=f"C0{i}")
+        axes[1].set_ylabel("Velocity (m/s)")
+
+        legend_elements = [
+            Line2D([0], [0], color="black", label="u"),
+            Line2D([0], [0], color="black", linestyle="dotted", label="v"),
+            Line2D([0], [0], color="black", linestyle="dashed", label="w"),
+        ]
+        axes[1].legend(frameon=False, handles=legend_elements)
+
+        axes[2].plot(
+            df["time"], df["q"], color=f"C0{i}"
+        )  # Surface heat flux from wall model
+        legend_elements = [
+            Line2D([0], [0], color="black", label="mean q"),
+            Line2D([0], [0], color="black", linestyle="dashed", label="min q"),
+            Line2D([0], [0], color="black", linestyle="dotted", label="max q"),
+        ]
+        axes[2].legend(frameon=False, handles=legend_elements, ncol=3)
+        axes[2].set_ylabel("$q$ (K m/s)")
+
+        axes[3].plot(
+            df["time"], df["L"], label="mean L", color=f"C0{i}"
+        )  # Obukhov length
+        axes[3].plot(df["time"], df["L_min"], linestyle="dashed", color=f"C0{i}")
+        axes[3].plot(df["time"], df["L_max"], linestyle="dotted", color=f"C0{i}")
+        legend_elements = [
+            Line2D([0], [0], color="black", label="mean L"),
+            Line2D([0], [0], color="black", linestyle="dashed", label="min L"),
+            Line2D([0], [0], color="black", linestyle="dotted", label="max L"),
+        ]
+        axes[3].legend(frameon=False, handles=legend_elements, ncol=3)
+        axes[3].set_ylabel("$L$ (m)")
+
+        axes[4].plot(df["time"], df["t"], color=f"C0{i}")
+        axes[4].plot(df["time"], df["ts"], linestyle="dashed", color=f"C0{i}")
+        axes[4].set_ylabel("Temperature (K)")
+        legend_elements = [
+            Line2D([0], [0], color="black", label="t"),
+            Line2D([0], [0], color="black", linestyle="dashed", label="ts"),
+        ]
+        axes[4].legend(frameon=False, handles=legend_elements)
+        if df.shape[1] > 11:
+            axes[5].plot(df["time"], df["Ri"], color=f"C0{i}")
+        legend_elements = [
+            Line2D([0], [0], color="black", label="mean Ri"),
+            Line2D([0], [0], color="black", linestyle="dashed", label="min Ri"),
+            Line2D([0], [0], color="black", linestyle="dotted", label="max Ri"),
+        ]
+        axes[5].legend(frameon=False, handles=legend_elements, ncol=3)
+        axes[5].set_ylabel("Ri")
+        if df.shape[1] == 16:
+            axes[2].plot(df["time"], df["q_min"], color=f"C0{i}", linestyle="dashed")
+            axes[2].plot(df["time"], df["q_max"], color=f"C0{i}", linestyle="dotted")
+            axes[5].plot(df["time"], df["Ri_min"], color=f"C0{i}", linestyle="dashed")
+            axes[5].plot(df["time"], df["Ri_max"], color=f"C0{i}", linestyle="dotted")
+
+        axes[5].set_xlabel("Time [s]")
+
+        dfs.append(df)
+
+    return fig, dfs
+
+
+def plot_wmles_q_diagnostics(path: str):
     """
     Plot timeseries of variables in a wmles.dat file (surface heat flux (q), average,
     minimum and maximum Obukhov length (L))

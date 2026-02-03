@@ -1,6 +1,8 @@
 from .plotting_functions import (
     plot_diagnostics,
+    plot_timestep_diagnostics,
     plot_wmles_diagnostics,
+    plot_wmles_q_diagnostics,
     plot_wmles_tau_diagnostics,
     plot_history_points,
     plot_vertical_profiles,
@@ -32,7 +34,9 @@ from .read_reference_data import (
 
 __all__ = [
     "plot_diagnostics",
+    "plot_timestep_diagnostics",
     "plot_wmles_diagnostics",
+    "plot_wmles_q_diagnostics",
     "plot_wmles_tau_diagnostics",
     "plot_history_points",
     "plot_vertical_profiles",
